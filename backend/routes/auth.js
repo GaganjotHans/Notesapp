@@ -8,7 +8,7 @@ var fetchuser = require("../middleware/fetchuser");
 
 const JWT_SECRET = "Thisisame";
 
-// Route 1: Crete a user using : POST "/api/auth/createuser" No login reqired
+// Route 1: Create a user using : POST "/api/auth/createuser" No login reqired
 router.post(
   "/createuser",
   [
@@ -20,10 +20,11 @@ router.post(
   ],
 
   async (req, res) => {
+    let success = false;
     //Validates data and return errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.send({ errors: errors.array() });
+      return res.send({ success,errors: errors.array() });
     }
     try {
       //Check whether the user with same email already exist or not
@@ -32,7 +33,7 @@ router.post(
       if (user) {
         return res
           .status(400)
-          .json({ error: "The user with same email already exists" });
+          .json({ success,error: "The user with same email already exists" });
       }
 
       const salt = await bcrypt.genSalt(10);
@@ -49,7 +50,8 @@ router.post(
         },
       };
       const authtoken = jwt.sign(data, JWT_SECRET);
-      res.json({ authtoken });
+      success = true;
+      res.json({success, authtoken });
     } catch (error) {
       console.log(error.message);
       res.status(500).send("Some error ocured");
@@ -66,6 +68,7 @@ router.post(
   ],
 
   async (req, res) => {
+    let success = false;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -75,15 +78,17 @@ router.post(
     try {
       let user = await User.findOne({ email });
       if (!user) {
+        success= false;
         return res
           .status(400)
           .json({ error: "Please try to login with correct ceredentials" });
       }
       const passwordCompare = await bcrypt.compare(password, user.password);
       if (!passwordCompare) {
+        success = false;
         return res
           .status(400)
-          .json({ error: "Please try to login with correct ceredentials" });
+          .json({success, error: "Please try to login with correct ceredentials" });
       }
       const data = {
         user: {
@@ -92,7 +97,8 @@ router.post(
         },
       };
       const authtoken = jwt.sign(data, JWT_SECRET);
-      res.json({ authtoken });
+      success = true;
+      res.json({ success, authtoken });
     } catch (error) {
       console.log(error.message);
       res.status(500).send("Some error ocured");
